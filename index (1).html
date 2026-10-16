@@ -1,0 +1,646 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Crime Detection in ATM Machines</title>
+<style>
+  /* Layout: project cover and sign-in, then a sidebar app for customer and admin. Content follows the project report (Chapters 1 to 4). */
+  :root {
+    --bg:#f2f5f9; --surface:#ffffff; --fg:#1d2733; --muted:#64707e; --line:#dbe2ea; --soft:#f2f5f9;
+    --head:#0f2f52; --accent:#1a5a96; --accent-strong:#0f2f52; --side:#0f2f52; --hover:#dfe9f4;
+    --ok-bg:#e6f4ea; --ok-bd:#98cba6; --ok-fg:#14502a;
+    --bad-bg:#fdeceb; --bad-bd:#e3a7a3; --bad-fg:#7a1a14;
+    --warn-bg:#fff3d9; --warn-bd:#e6c36f; --warn-fg:#6b4600;
+    --green:#1f7a3d; --amber:#a86400; --red:#b3261e; --grey:#6b7683; --input-bd:#b9c4d0;
+    --font:"Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif;
+  }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+    --bg:#0e1621; --surface:#16212e; --fg:#e4eaf1; --muted:#93a1b1; --line:#26354a; --soft:#1b2838;
+    --head:#cfe0f3; --accent:#3f87c9; --accent-strong:#5a9fdc; --side:#0a1f38; --hover:#243649;
+    --ok-bg:#12301d; --ok-bd:#2f6b45; --ok-fg:#a9e0bb;
+    --bad-bg:#3a1714; --bad-bd:#7d3a35; --bad-fg:#f2b8b3;
+    --warn-bg:#3a2b0e; --warn-bd:#7d5f1c; --warn-fg:#f0d08a;
+    --green:#2f9a54; --amber:#c98a1d; --red:#d4524a; --grey:#7c8896; --input-bd:#3b4d63; color-scheme:dark; } }
+  :root[data-theme="dark"] {
+    --bg:#0e1621; --surface:#16212e; --fg:#e4eaf1; --muted:#93a1b1; --line:#26354a; --soft:#1b2838;
+    --head:#cfe0f3; --accent:#3f87c9; --accent-strong:#5a9fdc; --side:#0a1f38; --hover:#243649;
+    --ok-bg:#12301d; --ok-bd:#2f6b45; --ok-fg:#a9e0bb;
+    --bad-bg:#3a1714; --bad-bd:#7d3a35; --bad-fg:#f2b8b3;
+    --warn-bg:#3a2b0e; --warn-bd:#7d5f1c; --warn-fg:#f0d08a;
+    --green:#2f9a54; --amber:#c98a1d; --red:#d4524a; --grey:#7c8896; --input-bd:#3b4d63; color-scheme:dark; }
+
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:var(--font); font-size:15px; color:var(--fg); background:var(--bg); line-height:1.5; }
+  .hide { display:none !important; }
+  button, input, select, textarea { font-family:inherit; }
+  :focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+  .linkbtn { background:none; border:0; padding:0; font-size:inherit; color:var(--accent); text-decoration:underline; cursor:pointer; }
+
+  #auth { min-height:100dvh; display:flex; }
+  .brand { flex:1.1; min-width:0; background:linear-gradient(160deg,#0f2f52,#1a5a96); color:#fff; padding:56px 48px; display:flex; flex-direction:column; justify-content:center; }
+  .brand .proj { color:#9fc3e6; font-size:12px; letter-spacing:1.6px; margin:0 0 12px; }
+  .brand h1 { margin:0 0 14px; font-size:30px; line-height:1.2; text-wrap:balance; }
+  .brand p { color:#d3e0ef; max-width:420px; font-size:16.5px; margin:0; }
+  .chips { margin-top:22px; display:flex; flex-wrap:wrap; gap:8px; }
+  .chips span { background:#ffffff1f; border:1px solid #ffffff44; padding:5px 12px; border-radius:20px; font-size:13px; }
+  .brand .linkbtn { color:#fff; align-self:flex-start; margin-top:26px; font-size:15px; }
+  .formside { flex:1; min-width:0; display:flex; align-items:center; justify-content:center; padding:30px 20px; background:var(--surface); }
+  .formbox { width:100%; max-width:360px; }
+  .formbox h2 { margin:0 0 4px; color:var(--head); }
+  .formbox .welcome { color:var(--muted); font-size:14px; margin:0 0 6px; letter-spacing:.5px; text-transform:uppercase; }
+  label { display:block; margin-top:12px; font-size:13px; color:var(--muted); }
+  input, select, textarea { display:block; width:100%; margin-top:4px; padding:10px; font-size:15px; color:var(--fg); background:var(--surface); border:1px solid var(--input-bd); border-radius:6px; }
+  input[type=file] { padding:7px; font-size:13px; }
+  textarea { min-height:84px; resize:vertical; }
+  .btn { margin-top:16px; padding:10px 18px; background:var(--accent); color:#fff; border:0; border-radius:6px; cursor:pointer; font-size:15px; width:100%; }
+  .btn:hover { background:var(--accent-strong); }
+  :root[data-theme="dark"] .btn:hover { color:#0a1f38; }
+  .btn.inline { width:auto; margin-top:12px; }
+  .btn.sm { width:auto; margin:0 4px 4px 0; padding:5px 11px; font-size:13px; }
+  .btn.alt { background:var(--surface); color:var(--accent); border:1px solid var(--accent); }
+  .btn.alt:hover { background:var(--hover); color:var(--accent); }
+  .btn.red { background:var(--red); }
+  .switch { font-size:14px; color:var(--muted); margin-top:16px; }
+  .hint { font-size:12.5px; color:var(--muted); background:var(--soft); border:1px dashed var(--input-bd); padding:8px 10px; border-radius:6px; margin-top:14px; }
+  .msg { margin-top:12px; padding:10px 12px; border-radius:6px; font-size:14px; display:none; }
+  .ok { background:var(--ok-bg); border:1px solid var(--ok-bd); color:var(--ok-fg); }
+  .bad { background:var(--bad-bg); border:1px solid var(--bad-bd); color:var(--bad-fg); }
+  .warn { background:var(--warn-bg); border:1px solid var(--warn-bd); color:var(--warn-fg); }
+
+  #about { min-height:100dvh; background:var(--bg); }
+  .aboutwrap { max-width:860px; margin:0 auto; padding:24px 16px 40px; }
+  .aboutwrap > .btn { margin:0 0 18px; }
+
+  #app { display:flex; min-height:100dvh; }
+  aside { width:236px; background:var(--side); color:#fff; padding:20px 0; flex:none; }
+  aside h3 { margin:0 20px 2px; font-size:17px; line-height:1.25; }
+  aside .role { margin:0 20px 18px; font-size:12px; color:#9fb8d3; text-transform:uppercase; letter-spacing:1px; }
+  aside .navbtn { display:block; width:100%; text-align:left; padding:11px 20px; background:none; border:0; border-left:3px solid transparent; color:#d3e0ef; cursor:pointer; font-size:14.5px; }
+  aside .navbtn:hover { background:#ffffff14; }
+  aside .navbtn.active { background:#ffffff1f; border-left-color:#6fb1ee; color:#fff; }
+  main { flex:1; padding:28px; min-width:0; }
+  .topline { color:var(--muted); font-size:13px; text-transform:uppercase; letter-spacing:1px; }
+  main h2 { margin:2px 0 20px; color:var(--head); font-size:26px; text-wrap:balance; }
+  .stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:14px; margin-bottom:22px; }
+  .stat { background:var(--surface); border:1px solid var(--line); border-radius:8px; padding:16px; min-width:0; }
+  .stat .n { font-size:26px; font-weight:600; color:var(--head); font-variant-numeric:tabular-nums; overflow-wrap:anywhere; }
+  .stat .l { font-size:13px; color:var(--muted); }
+  .panel { background:var(--surface); border:1px solid var(--line); border-radius:8px; padding:18px; margin-bottom:20px; min-width:0; }
+  .panel h3 { margin:0 0 10px; font-size:17px; color:var(--head); }
+  .panel p { margin:0 0 8px; }
+  .formrow { max-width:380px; }
+  .scroll { overflow-x:auto; }
+  table { border-collapse:collapse; width:100%; font-size:14px; }
+  th, td { border-bottom:1px solid var(--line); padding:9px 8px; text-align:left; font-variant-numeric:tabular-nums; vertical-align:top; }
+  th { background:var(--soft); color:var(--head); font-size:13px; white-space:nowrap; }
+  .pill { padding:2px 9px; border-radius:12px; font-size:12px; font-weight:600; color:#fff; white-space:nowrap; }
+  .p-Completed,.p-Delivered,.p-Active { background:var(--green); } .p-Flagged,.p-InTransit,.p-Processing { background:var(--amber); } .p-Failed,.p-Declined { background:var(--grey); } .p-Cardblocked { background:var(--red); } .p-Ready { background:var(--accent); }
+  .amounts button, .menugrid button { margin:6px 6px 0 0; padding:11px 16px; background:var(--soft); color:var(--fg); border:1px solid var(--line); border-radius:6px; cursor:pointer; font-size:15px; font-variant-numeric:tabular-nums; }
+  .amounts button:hover, .menugrid button:hover { background:var(--hover); }
+  .menugrid { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; }
+  .menugrid button { margin:0; padding:16px; text-align:left; }
+  .bar { display:flex; align-items:center; gap:10px; margin:8px 0; font-size:14px; }
+  .bar .lab { width:110px; flex:none; } .bar .track { flex:1; min-width:0; background:var(--soft); border-radius:4px; height:16px; } .bar .fill { height:100%; border-radius:4px; background:var(--accent); }
+  .rule { padding:10px 0; border-bottom:1px solid var(--line); } .rule:last-child { border:0; }
+  .empty { color:var(--muted); padding:8px 0; }
+  .note { font-size:13px; color:var(--muted); }
+  .bal { font-size:14px; padding:8px 10px; background:var(--soft); border-radius:6px; margin-top:8px; }
+  .avatar { width:40px; height:40px; border-radius:50%; object-fit:cover; background:var(--soft); flex:none; }
+  .avatar.big { width:64px; height:64px; }
+  .avatar.ph { display:inline-flex; align-items:center; justify-content:center; background:var(--accent); color:#fff; font-weight:600; font-size:16px; }
+  .who { display:flex; gap:10px; align-items:center; min-width:180px; }
+  .cols { display:grid; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); gap:16px; }
+  ul.tight { margin:6px 0 0; padding-left:20px; } ul.tight li { margin-bottom:4px; }
+  .mono { font-family:ui-monospace,Consolas,monospace; font-size:13px; }
+  .cols h4 { margin:0 0 4px; font-size:14px; color:var(--head); }
+
+  @media (max-width:800px) {
+    #auth { flex-direction:column; } .brand { padding:36px 24px; }
+    #app { flex-direction:column; } aside { width:100%; padding:12px 0 0; }
+    aside nav { display:flex; overflow-x:auto; } aside .navbtn { width:auto; white-space:nowrap; border-left:0; border-bottom:3px solid transparent; }
+    aside .navbtn.active { border-bottom-color:#6fb1ee; } main { padding:18px 16px; }
+  }
+</style>
+</head>
+<body>
+
+<div id="auth">
+  <div class="brand">
+    <div class="proj">FINAL YEAR PROJECT</div>
+    <h1>Design and Implementation of Crime Detection in ATM Machines</h1>
+    <p>An application that monitors ATM transactions, spots suspicious activity and helps banks control fraud.</p>
+    <div class="chips"><span>SSADM methodology</span><span>Customer and admin roles</span><span>Real-time fraud checks</span></div>
+    <button class="linkbtn" id="to-about" type="button">Read the project overview &rarr;</button>
+  </div>
+  <div class="formside">
+    <div class="formbox">
+      <div id="loginForm">
+        <p class="welcome">Crime Detection System</p>
+        <h2>Sign in</h2>
+        <label for="l-phone">Customer ID (phone number)</label><input id="l-phone" inputmode="numeric" autocomplete="username" placeholder="Enter phone number">
+        <label for="l-pass">Password</label><input id="l-pass" type="password" maxlength="4" inputmode="numeric" autocomplete="current-password" placeholder="Enter 4-digit password">
+        <button class="btn" id="b-login" type="button">Sign in</button>
+        <div id="l-msg" class="msg"></div>
+        <p class="switch">New customer? <button class="linkbtn" id="to-reg" type="button">Register here</button><br><button class="linkbtn" id="to-admin" type="button">Administrator login</button></p>
+        <div class="hint">This is a demo with fictional data. Please do not enter a real PIN, real bank details or a real account number.</div>
+      </div>
+
+      <div id="regForm" class="hide">
+        <p class="welcome">Create account</p>
+        <h2>Registration</h2>
+        <div id="regFields"></div>
+        <button class="btn" id="b-reg" type="button">Register (starting balance ₦100,000)</button>
+        <div id="r-msg" class="msg"></div>
+        <p class="switch">Already registered? <button class="linkbtn" id="to-login" type="button">Sign in</button></p>
+      </div>
+
+      <div id="adminForm" class="hide">
+        <p class="welcome">Administrator's login area</p>
+        <h2>Admin sign in</h2>
+        <label for="a-pass">Admin password</label><input id="a-pass" type="password" autocomplete="current-password">
+        <button class="btn" id="b-admin" type="button">Sign in as admin</button>
+        <div id="a-msg" class="msg"></div>
+        <p class="switch"><button class="linkbtn" id="to-login2" type="button">Back to customer sign in</button></p>
+        <div class="hint">Demo admin password: <strong>admin123</strong></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="about" class="hide">
+  <div class="aboutwrap">
+    <button class="btn sm alt" id="about-back" type="button">&larr; Back to sign in</button>
+    <div id="aboutBody"></div>
+  </div>
+</div>
+
+<div id="app" class="hide">
+  <aside>
+    <h3>Crime Detection in ATM Machines</h3>
+    <div class="role" id="roleLabel"></div>
+    <nav id="nav"></nav>
+  </aside>
+  <main>
+    <div class="topline" id="who"></div>
+    <h2 id="title"></h2>
+    <div id="page"></div>
+  </main>
+</div>
+
+<script>
+var $ = function (id) { return document.getElementById(id); };
+function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
+function money(n) { return "₦" + Number(n).toLocaleString(); }
+function show(id, text, cls) { var m = $(id); if (!m) return; m.className = "msg " + cls; m.style.display = "block"; m.textContent = text; }
+function fmt(t) { return new Date(t).toLocaleString(); }
+function opts(list, sel) { return list.map(function (x) { return "<option" + (x === sel ? " selected" : "") + ">" + esc(x) + "</option>"; }).join(""); }
+
+var BANKS = ["Access Bank", "First Bank", "Guaranty Trust Bank", "United Bank for Africa", "Zenith Bank", "Fidelity Bank", "Union Bank", "Sterling Bank", "Wema Bank", "Stanbic IBTC", "Polaris Bank", "Ecobank"];
+var STATES = ["Abia", "Adamawa", "Akwa Ibom", "Anambra", "Bauchi", "Bayelsa", "Benue", "Borno", "Cross River", "Delta", "Ebonyi", "Edo", "Ekiti", "Enugu", "FCT Abuja", "Gombe", "Imo", "Jigawa", "Kaduna", "Kano", "Katsina", "Kebbi", "Kogi", "Kwara", "Lagos", "Nasarawa", "Niger", "Ogun", "Ondo", "Osun", "Oyo", "Plateau", "Rivers", "Sokoto", "Taraba", "Yobe", "Zamfara"];
+
+/* ---------- data (stored in this browser only) ---------- */
+var db = { users: [], tx: [], reqs: [], reports: [] };
+var me = null, atmOpen = false, atmView = "menu", atmMsg = null, resetArmed = false, editPhone = null, delArmed = null, photoData = {};
+try { var s = localStorage.getItem("crimedetect1"); if (s) { var p = JSON.parse(s); db.users = p.users || []; db.tx = p.tx || []; db.reqs = p.reqs || []; db.reports = p.reports || []; } } catch (e) {}
+function save() { try { localStorage.setItem("crimedetect1", JSON.stringify(db)); } catch (e) {} }
+if (!db.users.some(function (u) { return u.role === "admin"; })) {
+  db.users.push({ name: "Bank Admin", phone: "admin", pin: "admin123", role: "admin" });
+  save();
+}
+function byPhone(p) { return db.users.filter(function (u) { return u.phone === p; })[0]; }
+function byAcct(a) { return db.users.filter(function (u) { return u.role === "customer" && u.acct === a; })[0]; }
+function customers() { return db.users.filter(function (u) { return u.role === "customer"; }); }
+function addTx(u, type, amount, status, reason, to) {
+  db.tx.push({ id: db.tx.length + 1, phone: u.phone, name: u.name, type: type, amount: amount, status: status, reason: reason, to: to || "", time: Date.now() });
+  save();
+}
+function addCustomer(f, photo) {
+  db.users.push({ name: f.name, gender: f.gender, address: f.address, phone: f.phone, acct: f.acct, bank: f.bank, pin: f.pin, photo: photo, role: "customer", balance: 100000, wrong: 0, blocked: false, blockReason: "" });
+  save();
+}
+
+/* ---------- customer form (used by registration and by the admin) ---------- */
+function custFields(p, editing) {
+  return "<label for='" + p + "-name'>Full name (account name)</label><input id='" + p + "-name'>" +
+    "<label for='" + p + "-gender'>Gender</label><select id='" + p + "-gender'><option value=''>Select gender</option><option>Male</option><option>Female</option></select>" +
+    "<label for='" + p + "-addr'>Address</label><input id='" + p + "-addr'>" +
+    "<label for='" + p + "-phone'>Phone number (the Customer ID)</label><input id='" + p + "-phone' inputmode='numeric'" + (editing ? " readonly" : "") + ">" +
+    "<label for='" + p + "-acct'>Account number (10 digits, invent one)</label><input id='" + p + "-acct' inputmode='numeric' maxlength='10'" + (editing ? " readonly" : "") + ">" +
+    "<label for='" + p + "-bank'>Bank</label><select id='" + p + "-bank'>" + opts(BANKS) + "</select>" +
+    (editing ? "" : "<label for='" + p + "-pin'>Password / ATM PIN (4 digits)</label><input id='" + p + "-pin' type='password' maxlength='4' inputmode='numeric'>") +
+    "<label for='" + p + "-photo'>Passport photograph (optional)</label><input id='" + p + "-photo' type='file' accept='image/*'>" +
+    "<img id='" + p + "-prev' class='avatar big' alt='Photo preview' hidden>";
+}
+function readCust(p, editing) {
+  var f = { name: $(p + "-name").value.trim(), gender: $(p + "-gender").value, address: $(p + "-addr").value.trim(), phone: $(p + "-phone").value.trim(),
+    acct: $(p + "-acct").value.trim(), bank: $(p + "-bank").value, pin: editing ? "" : $(p + "-pin").value };
+  if (!f.name || !f.gender || !f.address) return "Fill in the name, gender and address.";
+  if (!/^\d{7,15}$/.test(f.phone)) return "The phone number must contain digits only.";
+  if (!/^\d{10}$/.test(f.acct)) return "The account number must be 10 digits.";
+  if (!editing && !/^\d{4}$/.test(f.pin)) return "The PIN must be 4 digits.";
+  return f;
+}
+function bindPhoto(p) {
+  var el = $(p + "-photo"); if (!el) return;
+  photoData[p] = "";
+  el.onchange = function () {
+    var f = el.files[0]; photoData[p] = "";
+    if (!f || !/^image\//.test(f.type)) return;
+    var rd = new FileReader();
+    rd.onload = function () {
+      var img = new Image();
+      img.onload = function () {
+        var c = document.createElement("canvas"); c.width = c.height = 96;
+        var s = Math.min(img.width, img.height);
+        c.getContext("2d").drawImage(img, (img.width - s) / 2, (img.height - s) / 2, s, s, 0, 0, 96, 96);
+        photoData[p] = c.toDataURL("image/jpeg", 0.7);
+        $(p + "-prev").src = photoData[p]; $(p + "-prev").hidden = false;
+      };
+      img.src = rd.result;
+    };
+    rd.readAsDataURL(f);
+  };
+}
+function avatar(u, big) {
+  return u.photo ? "<img class='avatar" + (big ? " big" : "") + "' alt='' src='" + esc(u.photo) + "'>" :
+    "<span class='avatar ph" + (big ? " big" : "") + "'>" + esc((u.name || "?").charAt(0).toUpperCase()) + "</span>";
+}
+
+/* ---------- sign in / register / about ---------- */
+function showForm(which) { ["loginForm", "regForm", "adminForm"].forEach(function (f) { $(f).classList.toggle("hide", f !== which); }); }
+$("regFields").innerHTML = custFields("r", false); bindPhoto("r");
+$("to-reg").onclick = function () { showForm("regForm"); };
+$("to-admin").onclick = function () { showForm("adminForm"); };
+$("to-login").onclick = function () { showForm("loginForm"); };
+$("to-login2").onclick = function () { showForm("loginForm"); };
+$("to-about").onclick = function () { $("aboutBody").innerHTML = aboutHTML(); $("auth").classList.add("hide"); $("about").classList.remove("hide"); window.scrollTo(0, 0); };
+$("about-back").onclick = function () { $("about").classList.add("hide"); $("auth").classList.remove("hide"); };
+$("b-reg").onclick = function () {
+  var f = readCust("r", false);
+  if (typeof f === "string") return show("r-msg", f, "bad");
+  if (byPhone(f.phone) || byAcct(f.acct)) return show("r-msg", "That phone number or account number is already registered.", "bad");
+  addCustomer(f, photoData.r || "");
+  showForm("loginForm"); $("l-phone").value = f.phone;
+  show("l-msg", "Your account details were uploaded successfully. Please sign in.", "ok");
+};
+$("b-login").onclick = function () {
+  var u = byPhone($("l-phone").value.trim());
+  if (!u || u.role !== "customer" || u.pin !== $("l-pass").value) return show("l-msg", "Login unsuccessful. Check your phone number and password.", "bad");
+  if (u.blocked) return show("l-msg", "This account's card is " + (u.blockReason || "blocked") + ". You can still sign in, but ATM use is disabled until the administrator activates it.", "warn") || start(u);
+  start(u);
+};
+$("b-admin").onclick = function () {
+  var a = byPhone("admin");
+  if ($("a-pass").value !== a.pin) return show("a-msg", "Incorrect admin login details.", "bad");
+  start(a);
+};
+$("l-pass").onkeydown = function (e) { if (e.key === "Enter") $("b-login").click(); };
+$("a-pass").onkeydown = function (e) { if (e.key === "Enter") $("b-admin").click(); };
+function start(u) {
+  me = u; atmOpen = false; atmView = "menu"; atmMsg = null; editPhone = null; delArmed = null; resetArmed = false;
+  $("auth").classList.add("hide"); $("app").classList.remove("hide");
+  $("roleLabel").textContent = u.role === "admin" ? "Administrator" : "Customer";
+  $("who").textContent = u.name;
+  go("dashboard");
+}
+function logout() {
+  me = null; $("app").classList.add("hide"); $("auth").classList.remove("hide");
+  $("l-pass").value = ""; $("a-pass").value = ""; $("l-msg").style.display = "none"; $("a-msg").style.display = "none"; showForm("loginForm");
+}
+
+/* ---------- navigation ---------- */
+var menus = {
+  customer: [["dashboard", "Dashboard"], ["atm", "ATM"], ["mytx", "My Transactions"], ["cardreq", "ATM Card Request"], ["report", "Report Crime"], ["overview", "Project Overview"], ["rules", "Fraud Rules"]],
+  admin: [["dashboard", "Dashboard"], ["alerts", "Fraud Alerts"], ["alltx", "All Transactions"], ["customers", "Customer Records"], ["reqs", "ATM Card Requests"], ["reports", "Crime Reports"], ["stats", "Reports"], ["overview", "Project Overview"], ["rules", "Fraud Rules"]]
+};
+var curPage = "dashboard";
+function go(p) {
+  curPage = p;
+  $("nav").innerHTML = menus[me.role].map(function (m) { return "<button class='navbtn" + (m[0] === p ? " active" : "") + "' data-act='go' data-page='" + m[0] + "'>" + m[1] + "</button>"; }).join("") +
+    "<button class='navbtn' data-act='logout'>Logout</button>";
+  var t = menus[me.role].filter(function (m) { return m[0] === p; })[0];
+  $("title").textContent = t ? t[1] : "";
+  me = byPhone(me.phone);
+  pages[p]();
+}
+function setPage(h) { $("page").innerHTML = h; }
+function stat(n, l) { return "<div class='stat'><div class='n'>" + n + "</div><div class='l'>" + l + "</div></div>"; }
+function pill(s) { return "<span class='pill p-" + s.replace(/[\s-]/g, "") + "'>" + esc(s) + "</span>"; }
+function cardPill(u) { return u.blocked ? pill("Card blocked") : pill("Active"); }
+function txTable(list, withUser, actions) {
+  if (!list.length) return "<div class='empty'>No transactions found.</div>";
+  var h = "<div class='scroll'><table><tr><th>#</th>" + (withUser ? "<th>Customer</th>" : "") + "<th>Type</th><th>Amount</th><th>Status</th><th>Reason</th><th>Time</th>" + (actions ? "<th>Action</th>" : "") + "</tr>";
+  list.slice().reverse().forEach(function (x) {
+    h += "<tr><td>" + x.id + "</td>" + (withUser ? "<td>" + esc(x.name) + "</td>" : "") + "<td>" + esc(x.type) + (x.to ? "<br><span class='note'>to " + esc(x.to) + "</span>" : "") + "</td><td>" + money(x.amount) + "</td><td>" + pill(x.status) + "</td><td>" + esc(x.reason) + "</td><td>" + fmt(x.time) + "</td>" +
+      (actions ? "<td>" + (x.status === "Flagged" ? "<button class='btn sm' data-act='decide' data-id='" + x.id + "' data-ok='1'>Approve</button><button class='btn sm alt' data-act='decide' data-id='" + x.id + "' data-ok='0'>Decline</button>" : "") + "</td>" : "") + "</tr>";
+  });
+  return h + "</table></div>";
+}
+function back() { return "<button class='btn inline alt' data-act='view' data-view='menu'>Back to menu</button>"; }
+
+/* ---------- pages ---------- */
+var pages = {
+  dashboard: function () {
+    if (me.role === "admin") {
+      setPage("<div class='stats'>" + stat(customers().length, "Customers") + stat(db.tx.length, "Transactions") +
+        stat(db.tx.filter(function (t) { return t.status === "Flagged"; }).length, "Awaiting review") +
+        stat(customers().filter(function (u) { return u.blocked; }).length, "Blocked cards") +
+        stat(db.reqs.filter(function (r) { return r.status !== "Delivered"; }).length, "Open card requests") +
+        stat(db.reports.filter(function (r) { return !r.response; }).length, "Unanswered crime reports") + "</div>" +
+        "<div class='panel'><h3>Latest activity</h3>" + txTable(db.tx.slice(-5), true, false) + "</div>");
+    } else {
+      var mine = db.tx.filter(function (t) { return t.phone === me.phone; });
+      setPage("<div class='stats'>" + stat(money(me.balance), "Available balance") + stat(mine.length, "My transactions") +
+        stat(mine.filter(function (t) { return t.status === "Flagged"; }).length, "Held for review") + stat(me.blocked ? "Blocked" : "Active", "Card status") + "</div>" +
+        "<div class='panel'><div class='who'>" + avatar(me, true) + "<div><strong>" + esc(me.name) + "</strong><br><span class='note'>" + esc(me.bank) + " &middot; " + esc(me.acct) + " &middot; " + esc(me.phone) + "</span></div></div></div>" +
+        "<div class='panel'><h3>Recent transactions</h3>" + txTable(mine.slice(-5), false, false) + "</div>");
+    }
+  },
+
+  atm: function () {
+    if (me.blocked) return setPage("<div class='panel'><div class='msg bad' style='display:block;margin:0'>This card is " + esc(me.blockReason || "blocked") + ". Please contact the administrator.</div></div>");
+    var h = "<div class='panel'>";
+    if (!atmOpen) {
+      h += "<h3>Insert card</h3><div class='formrow'><label for='atm-pin'>Input ATM PIN</label><input id='atm-pin' type='password' maxlength='4' inputmode='numeric'></div><button class='btn inline' data-act='atmLogin'>Proceed</button>";
+    } else if (atmView === "menu") {
+      h += "<h3>Main menu</h3><div class='menugrid'><button data-act='view' data-view='withdraw'>Withdraw</button><button data-act='view' data-view='deposit'>Deposit</button><button data-act='view' data-view='balance'>Inquiry (balance)</button><button data-act='view' data-view='transfer'>Transfer</button><button data-act='view' data-view='pin'>Change PIN</button></div>" +
+        "<button class='btn inline alt' data-act='atmEnd'>Stop (take card)</button>";
+    } else if (atmView === "withdraw") {
+      h += "<h3>Withdraw</h3><div class='formrow'><label for='acct-type'>Select account type</label><select id='acct-type'><option>Savings Account</option><option>Current Account</option></select></div>" +
+        "<div class='amounts'>" + [1000, 2000, 3000, 5000, 10000, 20000, 40000].map(function (a) { return "<button data-act='withdraw' data-amt='" + a + "'>" + money(a) + "</button>"; }).join("") + "</div>" + back();
+    } else if (atmView === "deposit") {
+      h += "<h3>Deposit</h3><div class='formrow'><label for='dep-amt'>Amount (₦)</label><input id='dep-amt' inputmode='numeric'></div><button class='btn inline' data-act='deposit'>Deposit money</button> " + back();
+    } else if (atmView === "balance") {
+      h += "<h3>Account balance</h3><div class='bal'>Ledger balance: <strong>" + money(me.balance) + "</strong></div><div class='bal'>Available balance: <strong>" + money(me.balance) + "</strong></div>" + back();
+    } else if (atmView === "transfer") {
+      h += "<h3>Transfer</h3><div class='formrow'><label for='t-acct'>Recipient account number</label><input id='t-acct' inputmode='numeric' maxlength='10'><label for='t-amt'>Amount (₦)</label><input id='t-amt' inputmode='numeric'></div><button class='btn inline' data-act='transfer'>Send money</button> " + back();
+    } else if (atmView === "pin") {
+      h += "<h3>Change PIN</h3><div class='formrow'><label for='p-old'>Current PIN</label><input id='p-old' type='password' maxlength='4' inputmode='numeric'><label for='p-new'>New 4-digit PIN</label><input id='p-new' type='password' maxlength='4' inputmode='numeric'></div><button class='btn inline' data-act='changePin'>Change PIN</button> " + back();
+    }
+    if (atmMsg) h += "<div class='msg " + atmMsg[1] + "' style='display:block'>" + esc(atmMsg[0]) + "</div>";
+    setPage(h + "</div>");
+  },
+
+  mytx: function () { setPage("<div class='panel'>" + txTable(db.tx.filter(function (t) { return t.phone === me.phone; }), false, false) + "</div>"); },
+
+  cardreq: function () {
+    var mine = db.reqs.filter(function (r) { return r.phone === me.phone; });
+    var h = "<div class='panel'><h3>Request an ATM card</h3><div class='formrow'><label for='q-type'>ATM type</label><select id='q-type'>" + opts(["Verve Card", "Visa Card", "Master Card", "Credit Card"]) + "</select>" +
+      "<label for='q-dest'>Delivery destination (state)</label><select id='q-dest'>" + opts(STATES, "Lagos") + "</select>" +
+      "<label for='q-why'>Reason for requesting an ATM card</label><textarea id='q-why' placeholder='For example: my previous card was lost or damaged'></textarea></div>" +
+      "<button class='btn inline' data-act='requestCard'>Request now</button><div id='q-msg' class='msg'></div></div>";
+    h += "<div class='panel'><h3>My requests</h3>" + (mine.length ? "<div class='scroll'><table><tr><th>Tracking code</th><th>Type</th><th>Destination</th><th>State</th><th>Status</th><th>Date</th></tr>" +
+      mine.slice().reverse().map(function (r) { return "<tr><td class='mono'>" + esc(r.code) + "</td><td>" + esc(r.type) + "</td><td>" + esc(r.dest) + "</td><td>" + pill(r.state) + "</td><td>" + pill(r.status) + "</td><td>" + fmt(r.time) + "</td></tr>"; }).join("") + "</table></div>" : "<div class='empty'>No requests yet.</div>") + "</div>";
+    setPage(h);
+  },
+
+  report: function () {
+    var mine = db.reports.filter(function (r) { return r.phone === me.phone; });
+    setPage("<div class='panel'><h3>Report crime activities</h3><p class='note'>Tell the bank about anything suspicious: a loose card reader, a hidden camera, a stranger watching you enter your PIN, or a transaction you did not make.</p>" +
+      "<div class='formrow'><label for='c-where'>Where did it happen? (ATM location)</label><input id='c-where'><label for='c-what'>What did you see or notice?</label><textarea id='c-what'></textarea></div>" +
+      "<button class='btn inline' data-act='sendReport'>Send report</button><div id='c-msg' class='msg'></div></div>" +
+      "<div class='panel'><h3>My reports</h3>" + (mine.length ? mine.slice().reverse().map(function (r) {
+        return "<div class='rule'><strong>" + esc(r.where) + "</strong> <span class='note'>" + fmt(r.time) + "</span><br>" + esc(r.what) +
+          (r.response ? "<br><span class='note'>Bank response:</span> " + esc(r.response) : "<br><span class='note'>Waiting for a response from the bank.</span>") + "</div>"; }).join("") : "<div class='empty'>No reports yet.</div>") + "</div>");
+  },
+
+  alerts: function () {
+    var flagged = db.tx.filter(function (t) { return t.status === "Flagged" || t.status === "Card blocked"; });
+    var blocked = customers().filter(function (u) { return u.blocked; });
+    var h = "<div class='panel'><h3>Blocked cards</h3>";
+    h += blocked.length ? "<div class='scroll'><table><tr><th>Customer</th><th>Phone</th><th>Reason</th><th>Action</th></tr>" + blocked.map(function (u) { return "<tr><td>" + esc(u.name) + "</td><td>" + esc(u.phone) + "</td><td>" + esc(u.blockReason) + "</td><td><button class='btn sm' data-act='setCard' data-phone='" + esc(u.phone) + "' data-active='1' data-back='alerts'>Activate card</button></td></tr>"; }).join("") + "</table></div>" : "<div class='empty'>No blocked cards.</div>";
+    setPage(h + "</div><div class='panel'><h3>Suspicious transactions</h3>" + txTable(flagged, true, true) + "</div>");
+  },
+
+  alltx: function () {
+    setPage("<div class='panel'><label for='q' style='margin-top:0'>Search by customer name, phone, type, status or amount</label><input id='q' style='max-width:380px'><div id='txbox' style='margin-top:12px'>" + txTable(db.tx, true, false) + "</div></div>");
+  },
+
+  customers: function () {
+    var ed = editPhone ? byPhone(editPhone) : null, c = customers();
+    var h = "<div class='panel'><h3>" + (ed ? "Update customer record" : "Insert customer record") + "</h3><div class='formrow'>" + custFields("m", !!ed) + "</div>" +
+      "<button class='btn inline' data-act='saveCust'>" + (ed ? "Save changes" : "Add customer") + "</button>" + (ed ? " <button class='btn inline alt' data-act='cancelEdit'>Cancel</button>" : "") + "<div id='m-msg' class='msg'></div></div>";
+    h += "<div class='panel'><h3>Customer records and ATM cards</h3>" + (c.length ? "<div class='scroll'><table><tr><th>Customer</th><th>Phone</th><th>Bank / account</th><th>Balance</th><th>Card</th><th>Action</th></tr>" +
+      c.map(function (u) {
+        var ph = esc(u.phone);
+        return "<tr><td><div class='who'>" + avatar(u) + "<div>" + esc(u.name) + "<br><span class='note'>" + esc(u.gender) + ", " + esc(u.address) + "</span></div></div></td><td>" + ph + "</td><td>" + esc(u.bank) + "<br>" + esc(u.acct) + "</td><td>" + money(u.balance) + "</td><td>" + cardPill(u) + "</td><td>" +
+          (u.blocked ? "<button class='btn sm' data-act='setCard' data-phone='" + ph + "' data-active='1' data-back='customers'>Activate</button>" : "<button class='btn sm alt' data-act='setCard' data-phone='" + ph + "' data-active='0' data-back='customers'>Deactivate</button>") +
+          "<button class='btn sm alt' data-act='editCust' data-phone='" + ph + "'>Edit</button>" +
+          "<button class='btn sm " + (delArmed === u.phone ? "red" : "alt") + "' data-act='delCust' data-phone='" + ph + "'>" + (delArmed === u.phone ? "Click again to delete" : "Delete") + "</button></td></tr>"; }).join("") + "</table></div>" : "<div class='empty'>No customers yet. Add one above or let a customer register.</div>") + "</div>";
+    setPage(h); bindPhoto("m");
+    if (ed) { $("m-name").value = ed.name; $("m-gender").value = ed.gender; $("m-addr").value = ed.address; $("m-phone").value = ed.phone; $("m-acct").value = ed.acct; $("m-bank").value = ed.bank; }
+  },
+
+  reqs: function () {
+    setPage("<div class='panel'>" + (db.reqs.length ? "<div class='scroll'><table><tr><th>Tracking code</th><th>Customer</th><th>Type</th><th>Destination</th><th>Reason</th><th>State</th><th>Status</th></tr>" +
+      db.reqs.slice().reverse().map(function (r) { return "<tr><td class='mono'>" + esc(r.code) + "</td><td>" + esc(r.name) + "<br><span class='note'>" + esc(r.phone) + "</span></td><td>" + esc(r.type) + "</td><td>" + esc(r.dest) + "</td><td>" + esc(r.comment) + "</td>" +
+        "<td><select data-req='" + r.id + "' data-field='state' aria-label='State' style='width:auto'>" + opts(["Processing", "Ready"], r.state) + "</select></td>" +
+        "<td><select data-req='" + r.id + "' data-field='status' aria-label='Status' style='width:auto'>" + opts(["In-Transit", "Delivered"], r.status) + "</select></td></tr>"; }).join("") + "</table></div>" : "<div class='empty'>No ATM card requests yet.</div>") + "</div>");
+  },
+
+  reports: function () {
+    setPage("<div class='panel'>" + (db.reports.length ? db.reports.slice().reverse().map(function (r) {
+      return "<div class='rule'><strong>" + esc(r.where) + "</strong> <span class='note'>reported by " + esc(r.name) + " (" + esc(r.phone) + "), " + fmt(r.time) + "</span><br>" + esc(r.what) +
+        (r.response ? "<br><span class='note'>Your response:</span> " + esc(r.response) :
+          "<div class='formrow'><label for='resp-" + r.id + "'>Respond to this report</label><textarea id='resp-" + r.id + "'></textarea><button class='btn sm' style='margin-top:8px' data-act='respond' data-id='" + r.id + "'>Send response</button></div>") + "</div>"; }).join("") : "<div class='empty'>No crime reports yet.</div>") + "</div>");
+  },
+
+  stats: function () {
+    var kinds = ["Completed", "Flagged", "Failed", "Declined", "Card blocked"], max = Math.max(1, db.tx.length);
+    var h = "<div class='panel'><h3>Transactions by status</h3>" + kinds.map(function (k) {
+      var n = db.tx.filter(function (t) { return t.status === k; }).length;
+      return "<div class='bar'><div class='lab'>" + k + "</div><div class='track'><div class='fill' style='width:" + (n / max * 100) + "%'></div></div><div>" + n + "</div></div>";
+    }).join("") + "</div>";
+    var total = db.tx.filter(function (t) { return t.status === "Completed" && t.type === "Withdrawal"; }).reduce(function (a, t) { return a + t.amount; }, 0);
+    h += "<div class='panel'><h3>Summary</h3><p>Total cash dispensed: <strong>" + money(total) + "</strong></p>" +
+      "<button class='btn sm red' data-act='resetAll'>" + (resetArmed ? "Click again to delete everything" : "Reset all demo data") + "</button>" + (resetArmed ? "<button class='btn sm alt' data-act='cancelReset'>Cancel</button>" : "") + "</div>";
+    setPage(h);
+  },
+
+  overview: function () { setPage(aboutHTML()); },
+
+  rules: function () {
+    setPage("<div class='panel'><h3>How fraud is detected in this demo</h3><p>Every ATM action is checked the moment it happens. Normal transactions go through. Suspicious ones are held or blocked and the administrator is alerted, so action is taken before money is lost.</p></div>" +
+      "<div class='panel'><h3>Fraud rules</h3>" +
+      "<div class='rule'><strong>Wrong PIN 3 times:</strong> the card is blocked until the admin activates it.</div>" +
+      "<div class='rule'><strong>Large withdrawal or transfer (₦40,000 or more):</strong> held for admin review.</div>" +
+      "<div class='rule'><strong>Rapid transactions (3 or more in 1 minute):</strong> held for admin review.</div>" +
+      "<div class='rule'><strong>Not enough balance:</strong> the transaction fails.</div></div>" +
+      "<div class='panel'><h3>User roles</h3><div class='rule'><strong>Client (customer):</strong> open an account, withdraw, deposit and transfer funds, input the ATM PIN, request an ATM card and report crime activities.</div>" +
+      "<div class='rule'><strong>Admin:</strong> update, insert and delete records, activate or deactivate ATM cards, review flagged transactions and respond to crime reports.</div></div>" +
+      "<p class='note'>All data is fictional and is stored only in your browser. The full system in the report runs on PHP and MySQL with a server-side database.</p>");
+  }
+};
+
+/* ---------- project overview (content from the project report) ---------- */
+function aboutHTML() {
+  function P(t, b) { return "<div class='panel'><h3>" + t + "</h3>" + b + "</div>"; }
+  function L(a) { return "<ul class='tight'>" + a.map(function (x) { return "<li>" + x + "</li>"; }).join("") + "</ul>"; }
+  function T(title, rows) {
+    return "<div><h4>" + title + "</h4><div class='scroll'><table><tr><th>Field</th><th>Type</th><th>Size</th></tr>" +
+      rows.map(function (r) { return "<tr><td class='mono'>" + r[0] + "</td><td>" + r[1] + "</td><td>" + r[2] + "</td></tr>"; }).join("") + "</table></div></div>";
+  }
+  return "<div class='panel'><h3 style='font-size:21px'>Design and Implementation of Crime Detection in ATM Machines</h3>" +
+    "<p>A system that checks ATM transactions as they happen, flags suspicious activity and lets bank staff act before money is lost. It was designed with SSADM and built with HTML, CSS, JavaScript, PHP and a MySQL database.</p></div>" +
+    P("Background to the study", "<p>An automated teller machine (ATM) lets customers complete basic banking transactions without a teller. Every card transaction must be approved in real time while the customer waits, and a key problem is quickly identifying suspicious or fraudulent use so the transaction can be rejected and the card suspended.</p><p>Identifying fraud normally takes hours or days, and many transactions slip through before a hold is placed on the card. The study proposes flagging suspicious transactions in real time.</p>") +
+    P("Statement of the problem", "<p>The ATM channel remains one of the most vulnerable targets for fraud. Fraudsters use stolen or forged ATM cards to withdraw funds from customers' accounts, quickly cashing out while leaving minimal tracks.</p>") +
+    P("Aim and objectives", "<p>The main aim is to develop an encoded technique for fraud detection in Automated Teller Machines (ATM). The objectives are:</p>" +
+      L(["To develop a new algorithm for ATM fraud detection in credit cards.", "To develop an Automated Teller Machine (ATM) that will reduce fraud.", "To discuss the way ATM fraud can be detected, and the technology and application of ATM.", "To design an application software that will aid in monitoring and controlling fraud."])) +
+    P("Scope and significance", "<p><strong>Scope:</strong> detection of fraud in ATMs of Nigerian banks and other financial institutions.</p><p><strong>Significance:</strong> automated crime detection in ATM machines leads to effective and comprehensive fraud control in the banking sector, for example computerised verification of illegal access to customers' accounts.</p>") +
+    "<div class='panel'><h3>How ATM fraud is committed (Chapter 2)</h3><div class='cols'>" +
+      "<div><h4>Card theft (trapping)</h4><p class='note'>A thin device in the card reader throat stops the card from coming out. A criminal nearby offers help and watches the PIN being entered, then removes the card.</p></div>" +
+      "<div><h4>Skimming devices</h4><p class='note'>Small readers placed on or near the card slot copy the data on the magnetic stripe. Micro cameras may record the PIN.</p></div>" +
+      "<div><h4>PIN fraud</h4>" + L(["Shoulder surfing: watching the keypad directly or by hidden camera", "Fake PIN pad overlay placed over the real keypad", "PIN interception inside the terminal or on the way to the host"]) + "</div></div></div>" +
+    "<div class='panel'><h3>Detection techniques reviewed (Chapter 2)</h3><div class='cols'>" +
+      "<div>" + L(["<strong>Artificial neural networks:</strong> learn patterns from input signals and weights", "<strong>Support vector machines:</strong> separate legitimate and fraudulent classes with an optimal hyperplane", "<strong>Bayesian belief networks:</strong> probability of fraud given the values of a transaction"]) + "</div>" +
+      "<div>" + L(["<strong>Decision trees:</strong> easy to read as IF...THEN rules", "<strong>Outlier detection:</strong> finds observations that deviate from normal behaviour", "<strong>Peer group analysis:</strong> flags an account that behaves differently from accounts that used to behave like it"]) + "</div></div>" +
+      "<p class='note' style='margin-top:10px'>Learning approaches: supervised (labelled legitimate and fraudulent examples), unsupervised (finds unusual behaviour without labels) and semi-supervised (a few labels and many unlabelled samples).</p></div>" +
+    P("Methodology (Chapter 3)", "<p>The Structured System Analysis and Design Methodology (SSADM) was used. It follows the waterfall life cycle from the feasibility study to the physical design stage, with three main techniques:</p>" +
+      L(["<strong>Logical data modelling:</strong> identifying entities and relationships", "<strong>Data flow modelling:</strong> tracking processes, data stores, external entities and data movement", "<strong>Entity behaviour modelling:</strong> the events that affect each entity and their sequence"])) +
+    P("Feasibility study", L(["<strong>Technical:</strong> the software, hardware and technical manpower needed are available.", "<strong>Operational:</strong> the system is user friendly and needs no expert knowledge to run.", "<strong>Economic:</strong> it is cheap to implement and maintain, needing a computer, a web browser and a WAMP server."])) +
+    P("Existing system and proposed system", "<div class='cols'><div><h4>Weaknesses of the existing system</h4>" + L(["Manual processing is slow and prone to errors", "The process is stressful to end users", "Fraudsters can cash out quickly and leave minimal tracks"]) + "</div>" +
+      "<div><h4>Advantages of the proposed system</h4>" + L(["A new algorithm for ATM fraud detection", "Available 24 hours a day, 7 days a week", "Helps reduce fraud", "Customers do not need to carry cash when travelling", "Less manpower needed because transactions are processed and monitored automatically"]) + "</div></div>") +
+    P("User privileges (Chapter 4)", "<div class='cols'><div><h4>Admin</h4>" + L(["Update record", "Insert and delete record", "Activate ATM card", "Deactivate ATM card"]) + "</div>" +
+      "<div><h4>Client (user)</h4>" + L(["Open account", "Transfer fund", "Withdraw fund", "Input ATM PIN", "Report crime activities"]) + "</div></div>") +
+    "<div class='panel'><h3>Database design</h3><p>The database has four tables: register, ATM card, bank and country.</p><div class='cols'>" +
+      T("Register table", [["id", "Integer", "30"], ["Fname", "Varchar", "100"], ["Gender", "Varchar", "10"], ["address", "Varchar", "1000"], ["acctno", "Varchar", "50"], ["bvn", "Varchar", "50"], ["photo", "Varchar", "255"], ["pn", "Varchar", "30"], ["bank", "Varchar", "200"], ["pass", "Varchar", "100"], ["datereg", "Timestamp", ""]]) +
+      T("ATM card table", [["Id", "Integer", "30"], ["Atmtype", "Varchar", "50"], ["Destination", "Varchar", "200"], ["Comment", "Mediumtext", ""], ["Status", "Varchar", "50"], ["Contact", "Varchar", "30"], ["Datereques", "Timestamp", ""], ["Tcode", "Varchar", "100"], ["State", "Varchar", "30"]]) +
+      T("Bank table", [["Id", "Integer", "30"], ["Bank", "Varchar", "200"], ["Country", "Varchar", "100"]]) +
+      T("Country table", [["id", "Integer", "30"], ["Country", "Varchar", "100"], ["Location", "Varchar", "100"]]) + "</div></div>" +
+    P("Tools used", "<p>HTML, CSS, JavaScript, PHP and a MySQL database, running on a WAMP server. These tools run on several operating systems, and access to information is restricted.</p>") +
+    "<p class='note'>This online version is a working demonstration of the system. It uses fictional data stored in your own browser, and it leaves out the BVN field from the register table so that no sensitive number is collected.</p>";
+}
+
+/* ---------- ATM actions ---------- */
+function atmLogin() {
+  if ($("atm-pin").value !== me.pin) {
+    me.wrong++;
+    if (me.wrong >= 3) { me.blocked = true; me.blockReason = "blocked after 3 wrong PIN attempts"; addTx(me, "Card", 0, "Card blocked", "3 wrong PIN attempts"); atmMsg = null; return go("atm"); }
+    save(); atmMsg = ["ATM PIN is incorrect. Attempts left: " + (3 - me.wrong), "warn"]; return go("atm");
+  }
+  me.wrong = 0; save(); atmOpen = true; atmView = "menu"; atmMsg = null; go("atm");
+}
+function check(amount) {
+  var recent = db.tx.filter(function (t) { return t.phone === me.phone && t.amount > 0 && Date.now() - t.time < 60000; }).length;
+  if (amount > me.balance) return { status: "Failed", reason: "Insufficient funds", msg: ["Insufficient funds. Check your available balance first.", "bad"] };
+  if (amount >= 40000) return { status: "Flagged", reason: "Large amount (₦40,000 or more)", msg: ["Transaction held: this large amount looks suspicious. The admin must review it.", "warn"] };
+  if (recent >= 2) return { status: "Flagged", reason: "3 or more transactions within 1 minute", msg: ["Transaction held: too many transactions too quickly. The admin must review it.", "warn"] };
+  return { status: "Completed", reason: "Passed all checks" };
+}
+function withdraw(amount) {
+  var type = $("acct-type").value, r = check(amount);
+  if (r.status === "Completed") { me.balance -= amount; atmMsg = ["Please take your cash: " + money(amount) + ". New balance: " + money(me.balance), "ok"]; } else atmMsg = r.msg;
+  addTx(me, "Withdrawal", amount, r.status, r.reason + (r.status === "Completed" ? " (" + type + ")" : "")); save(); go("atm");
+}
+function deposit() {
+  var amount = parseInt($("dep-amt").value, 10);
+  if (!(amount > 0) || amount > 1000000) { atmMsg = ["Enter an amount between ₦1 and ₦1,000,000.", "bad"]; return go("atm"); }
+  me.balance += amount; addTx(me, "Deposit", amount, "Completed", "Cash deposit"); atmMsg = ["Deposit successful. New balance: " + money(me.balance), "ok"]; go("atm");
+}
+function transfer() {
+  var acct = $("t-acct").value.trim(), amount = parseInt($("t-amt").value, 10), to = byAcct(acct);
+  if (!to || to.phone === me.phone) { atmMsg = ["Recipient account not found. Enter another customer's 10-digit account number.", "bad"]; return go("atm"); }
+  if (!(amount > 0)) { atmMsg = ["Enter an amount greater than zero.", "bad"]; return go("atm"); }
+  var r = check(amount);
+  if (r.status === "Completed") { me.balance -= amount; to.balance += amount; atmMsg = ["Sent " + money(amount) + " to " + to.name + ". New balance: " + money(me.balance), "ok"]; } else atmMsg = r.msg;
+  addTx(me, "Transfer", amount, r.status, r.reason, acct); save(); go("atm");
+}
+function changePin() {
+  var o = $("p-old").value, n = $("p-new").value;
+  if (o !== me.pin) atmMsg = ["Current PIN is incorrect.", "bad"];
+  else if (!/^\d{4}$/.test(n)) atmMsg = ["New PIN must be 4 digits.", "bad"];
+  else { me.pin = n; save(); atmMsg = ["PIN changed successfully.", "ok"]; }
+  go("atm");
+}
+
+/* ---------- customer forms ---------- */
+function requestCard() {
+  var why = $("q-why").value.trim();
+  if (!why) return show("q-msg", "Please give a reason for the request.", "bad");
+  var code = "TC" + String(Date.now()).slice(-7) + Math.floor(10 + Math.random() * 90);
+  db.reqs.push({ id: db.reqs.length + 1, phone: me.phone, name: me.name, type: $("q-type").value, dest: $("q-dest").value, comment: why, status: "In-Transit", state: "Processing", code: code, time: Date.now() });
+  save(); go("cardreq"); show("q-msg", "ATM card requested successfully. Your tracking code is " + code + ".", "ok");
+}
+function sendReport() {
+  var w = $("c-where").value.trim(), t = $("c-what").value.trim();
+  if (!w || !t) return show("c-msg", "Please fill in both fields.", "bad");
+  db.reports.push({ id: db.reports.length + 1, phone: me.phone, name: me.name, where: w, what: t, response: "", time: Date.now() });
+  save(); go("report"); show("c-msg", "Report sent to the bank. Thank you.", "ok");
+}
+
+/* ---------- admin actions ---------- */
+function decide(id, ok) {
+  var x = db.tx.filter(function (t) { return t.id === id; })[0], u = byPhone(x.phone);
+  if (ok) {
+    if (u.balance < x.amount) { x.status = "Failed"; x.reason = "Insufficient funds at approval"; }
+    else { u.balance -= x.amount; if (x.type === "Transfer") { var to = byAcct(x.to); if (to) to.balance += x.amount; } x.status = "Completed"; x.reason += " (approved by admin)"; }
+  } else { x.status = "Declined"; x.reason += " (declined by admin)"; }
+  save(); go("alerts");
+}
+function setCard(phone, active, backTo) {
+  var u = byPhone(phone);
+  if (active) { u.blocked = false; u.blockReason = ""; u.wrong = 0; } else { u.blocked = true; u.blockReason = "deactivated by the administrator"; }
+  save(); go(backTo);
+}
+function saveCust() {
+  var ed = editPhone ? byPhone(editPhone) : null, f = readCust("m", !!ed);
+  if (typeof f === "string") return show("m-msg", f, "bad");
+  if (ed) {
+    ed.name = f.name; ed.gender = f.gender; ed.address = f.address; ed.bank = f.bank; if (photoData.m) ed.photo = photoData.m;
+    save(); editPhone = null; go("customers"); return show("m-msg", "Record updated.", "ok");
+  }
+  if (byPhone(f.phone) || byAcct(f.acct)) return show("m-msg", "That phone number or account number is already registered.", "bad");
+  addCustomer(f, photoData.m || ""); go("customers"); show("m-msg", "Customer added.", "ok");
+}
+function delCust(phone) {
+  if (delArmed !== phone) { delArmed = phone; return go("customers"); }
+  db.users = db.users.filter(function (u) { return u.phone !== phone; }); delArmed = null; if (editPhone === phone) editPhone = null; save(); go("customers");
+}
+function setReq(id, field, value) { db.reqs.filter(function (r) { return r.id === id; })[0][field] = value; save(); }
+function respond(id) {
+  var v = $("resp-" + id).value.trim(); if (!v) return;
+  db.reports.filter(function (r) { return r.id === id; })[0].response = v; save(); go("reports");
+}
+function filterTx() {
+  var q = $("q").value.toLowerCase();
+  $("txbox").innerHTML = txTable(db.tx.filter(function (t) { return (t.name + " " + t.phone + " " + t.status + " " + t.type + " " + t.amount).toLowerCase().indexOf(q) > -1; }), true, false);
+}
+function resetAll() {
+  if (!resetArmed) { resetArmed = true; return go("stats"); }
+  resetArmed = false; db.users = db.users.filter(function (u) { return u.role === "admin"; }); db.tx = []; db.reqs = []; db.reports = []; save(); go("stats");
+}
+
+/* ---------- one click handler for every button the pages draw ---------- */
+document.addEventListener("click", function (e) {
+  var b = e.target.closest("[data-act]"); if (!b) return;
+  var d = b.dataset;
+  switch (d.act) {
+    case "go": resetArmed = false; delArmed = null; if (d.page !== "customers") editPhone = null; if (d.page !== "atm") { atmMsg = null; } go(d.page); break;
+    case "logout": logout(); break;
+    case "view": atmView = d.view; atmMsg = null; go("atm"); break;
+    case "atmLogin": atmLogin(); break;
+    case "atmEnd": atmOpen = false; atmView = "menu"; atmMsg = ["Please take your ATM card. Have a nice day!", "ok"]; go("atm"); break;
+    case "withdraw": withdraw(+d.amt); break;
+    case "deposit": deposit(); break;
+    case "transfer": transfer(); break;
+    case "changePin": changePin(); break;
+    case "requestCard": requestCard(); break;
+    case "sendReport": sendReport(); break;
+    case "decide": decide(+d.id, d.ok === "1"); break;
+    case "setCard": setCard(d.phone, d.active === "1", d.back); break;
+    case "editCust": editPhone = d.phone; delArmed = null; go("customers"); window.scrollTo(0, 0); break;
+    case "cancelEdit": editPhone = null; go("customers"); break;
+    case "saveCust": saveCust(); break;
+    case "delCust": delCust(d.phone); break;
+    case "respond": respond(+d.id); break;
+    case "resetAll": resetAll(); break;
+    case "cancelReset": resetArmed = false; go("stats"); break;
+  }
+});
+document.addEventListener("change", function (e) { var t = e.target; if (t.dataset && t.dataset.req) setReq(+t.dataset.req, t.dataset.field, t.value); });
+document.addEventListener("input", function (e) { if (e.target.id === "q") filterTx(); });
+</script>
+
+</body>
+</html>
